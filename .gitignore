@@ -1,3 +1,11 @@
+# MacOS
+*.DS_Store
+
+# Additionally
+.vscode/
+.jb-internship-2025-material/
+main
+
 # Prerequisites
 *.d
 
