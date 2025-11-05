@@ -1,6 +1,7 @@
 // main.c
 
 #include "render.h"
+#include <time.h>
 
 // - identify the public functions provided by the library by inspecting the librenderer.dylib binary
 //  - from their names, deduce their purpose and how they work together.
@@ -10,10 +11,6 @@
 // - correctly initialize the library, 
 // - run its main loop,
 // - and properly shut it down (if succeeded the an animation will appear in the window).
-
-// arguments are passed in following order of registers
-// rdi, rsi, rdx, rcx, r8, r9
-// of function is stored in rax
 
 // 7th and next are Passed on the stack in reverse order, so the last argument is the first one pushed onto the stack.
 // Floating-point arguments: Passed in separate floating-point registers (%xmm0 through %xmm7). 
@@ -30,6 +27,15 @@ int main(void) {
     int x = gfx_get_height_screen();
     int y = gfx_get_width_screen();
     char* str = gfx_get_window_title();
+
+    int gfxT = gfx_time();
+    // gfx_sleep(1000);
+    struct timespec* tp;
+    int my = clock_gettime(CLOCK_REALTIME, tp);
+    my = tp->tv_sec * 1000 + tp->tv_nsec / 1000000;
+
+    fprintf(stdout, "out gfx: %d ms\n", gfxT);
+    fprintf(stdout, "out our: %d ms\n", my);
 
     fprintf(stdout, "Window title: %s\n", str);
 
