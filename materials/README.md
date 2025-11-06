@@ -1,7 +1,4 @@
 # Additional materials 
-This folder contains any additional materials I've had the opportunity to study 
-or tasks I was asked to solve as any part of my Software Engineer / Student career.
-
 During my Computer Science studies at Univeristy of Warsaw I've had an opportunity to get a hands-on
 example of experience with reverse engineering. We've had the opportunity to reverse-engineer a small
 game developed specially for purpose of this assignment. There were a few tasks in that assignment,
