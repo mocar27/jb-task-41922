@@ -1,7 +1,9 @@
 // main.c
 
-#include "render.h"
+#include <stdlib.h>
 #include <time.h>
+
+#include "render.h"
 
 // - identify the public functions provided by the library by inspecting the librenderer.dylib binary
 //  - from their names, deduce their purpose and how they work together.
@@ -12,35 +14,52 @@
 // - run its main loop,
 // - and properly shut it down (if succeeded the an animation will appear in the window).
 
-// 7th and next are Passed on the stack in reverse order, so the last argument is the first one pushed onto the stack.
-// Floating-point arguments: Passed in separate floating-point registers (%xmm0 through %xmm7). 
-
 int main(void) {
     // You're allowed to modify this function as much as you want.
     // Please, provide a small description of what you have done and how.
     // And, try to avoid memory leaks :)
 
-    // gfx_sleep(999999999); // sleep for 1 second - holds really really long
-    // int t = gfx_time();
-    // fprintf(stdout, "Current time: %d\n", t);
-
-    int x = gfx_get_height_screen();
-    int y = gfx_get_width_screen();
-    char* str = gfx_get_window_title();
-
-    int gfxT = gfx_time();
     // gfx_sleep(1000);
-    struct timespec* tp;
-    int my = clock_gettime(CLOCK_REALTIME, tp);
-    my = tp->tv_sec * 1000 + tp->tv_nsec / 1000000;
+    
+    gfx_context* ctx = malloc(sizeof(gfx_context));
+    char* title = gfx_get_window_title();
+    uint32_t width = gfx_get_width_screen();
+    uint32_t height = gfx_get_height_screen();
 
-    fprintf(stdout, "out gfx: %d ms\n", gfxT);
-    fprintf(stdout, "out our: %d ms\n", my);
+    fprintf(stdout, "Window title: %s\n", title);
+    fprintf(stdout, "Screen width: %d\n", width);
+    fprintf(stdout, "Screen height: %d\n", height);
 
-    fprintf(stdout, "Window title: %s\n", str);
+    gfx_create_context(ctx, width, height, title);
 
-    fprintf(stdout, "Screen height: %d\n", x);
-    fprintf(stdout, "Screen width: %d\n", y);
+    fprintf(stdout, "Window title: %s\n", ctx->name);
+
+    fprintf(stdout, "Screen height: %d\n", ctx->height);
+    fprintf(stdout, "Screen width: %d\n", ctx->width);
+
+    // gfx_init_context((void*)ctx);
+    // gfx_context* ctx = gfx_create_context((void*)ctx, 1234, 800, 600);
+    // gfx_get_window_title()   
+    
+    // ctx->name = gfx_get_window_title();
+    // ctx->width = gfx_get_width_screen();
+    // ctx->height = gfx_get_height_screen();
+    // ctx->framebuffer = gfx_allocate_framebuffer(ctx);
+
+    // gfx_loop((void*)ctx);
+    // gfx_render((void*)ctx);
+    // gfx_init_context((void*)ctx);
+
+    // int gfxT = gfx_time();
+    // struct timespec* tp = malloc(sizeof(struct timespec));
+    // int my = clock_gettime(CLOCK_REALTIME, tp);
+    // my = tp->tv_sec * 1000 + tp->tv_nsec / 1000000;
+    
+    // fprintf(stdout, "out gfx: %d ms\n", gfxT);
+    // fprintf(stdout, "out our: %d ms\n", my);
     fprintf(stdout, "Ready to go?\n");
+
+    free(ctx);
+    // free(tp);
     return EXIT_SUCCESS;
 }
