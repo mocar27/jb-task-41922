@@ -1,0 +1,39 @@
+Hi,
+
+Below is the description of the credit assignment for the RE (reverse engineering) module. The attached file is a prototype of a game for the Windows platform, which must be analyzed and modified in order to complete the following tasks:
+[1 point] The game begins with an attempt to start the computer. Modify the game so that when trying to enter the disk password, the password characters are displayed instead of asterisks. Describe in the report how the modification was made.
+[4 points] The game verifies the correctness of the entered disk password. In the report, describe the algorithm by which the password is verified. Based on the collected information, find the correct password.
+[2 points] Being constantly forced by your mom to start the computer every time the game restarts is a bit annoying, right? Modify the game so that its initial state is the same as after attempting to start the computer with your mom. Describe how the current “phase” of the game is determined.
+[3 points] Modify the game so that it’s possible to win the fight against Gary. Try not to rely solely on brute force — decreasing HP values or increasing attack values will not be awarded full points. Investigate what gives the opponent an unfair advantage and level the playing field using an appropriate modification.
+
+When sending your solution, please include:
+- A report precisely describing how each task was solved. The report should preferably be in plain text format — a .txt file or Markdown (.md).
+- The modified .exe file with the implemented changes. It’s enough to send one .exe file containing all the changes.
+
+The task can be completed using either the software used in the laboratory (mentioned in the introductory email for the RE module) or its equivalents.
+There’s no problem if, instead of the decompiler built into IDA Free, you use software such as Ghidra, for example.
+
+Additional tips for solving the task:
+- The Windows environment should have the Microsoft Visual C++ Redistributable for Visual Studio 2019 x64 package installed (installer file: https://aka.ms/vs/17/release/vc_redist.x64.exe).
+- The application was tested on Windows 10 and Windows 11.
+- In case of problems with running the application, please send an email with the operating system version and the error message (a screenshot can be included as well).
+- Remember to extract all files from the .zip archive before running the application and starting your analysis.
+- The task includes a .pdb file (symbols). Make sure they are available during analysis — i.e., you can see function names and have clicked Yes in the IDA window:
+    “Do you want to look for this file at the specified path and the Microsoft Symbol Server?”
+- The SDL libraries include so-called TLS callbacks, on which x64dbg sets breakpoints.
+    In Options → Preferences, leave only “Entry Breakpoint” enabled and disable “System Breakpoint” and “TLS Callbacks.”
+    In x64dbg, patches can be applied via File → Patch file (CTRL+P).
+- Instructions can be modified using the built-in assembler in x64dbg (with the spacebar) or assembled in NASM beforehand and added in binary via RMB → Edit → Binary Edit (CTRL+E).
+– Remember that not all space in a section is reflected in the file (file alignment is 0x200, while pages are 0x1000).
+- If not all patches were successfully transferred to the file and you receive a message such as 8/14 patches applied (instead of 14/14), it means that some patches exceeded the section range available in the file.
+- Addresses shown in IDA have a different base address than in x64dbg.
+    However, offsets relative to the beginning of the mapped file are the same.
+    This is useful when looking for the same instruction in both IDA and x64dbg.
+- The “Go to” window supports RVA, so to find 0x140005D47, you just need to enter in x64dbg:
+    :$0x5D47
+
+The final deadline for submitting solutions is January 8, 2024, 23:59:59.
+If the assignment is submitted late, 1 point will be deducted for each started day of delay.
+Remember that on the Moodle platform you can find additional materials that will be helpful in solving the task.
+
+Good luck!

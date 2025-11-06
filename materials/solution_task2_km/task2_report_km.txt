@@ -1,0 +1,73 @@
+1.
+At the beginning, I managed to find in the code the place where things are displayed on the PC,
+commands such as pc_print, pc_putch, pc_delch. It turned out that in pc_putch, the character '*' is put into some memory address,
+from which the data are later displayed on the computer screen.
+In the register monitor in x64dbg we can notice that the value in the r9 register — the argument passed to the pc_putch function —
+is the value of the currently pressed key on the keyboard. Therefore, instead of loading the value '*' into [rcx+rdx], we will load
+the value of r9w there; in this way we will display the key currently pressed on the keyboard, so instead of stars, the password characters will be displayed.
+
+2.
+While analyzing the doPC_[...] functions, we find that there is a function called doPC_attemptPassword in which
+all things related to entering the password on the computer happen. When analyzing this function, we reach the place where
+the function pc_check_luks_password is called; if its result is incorrect — the last 8 bits of rax set to 0 — we see
+that an error message will be displayed, stating that there is no key with the given password; otherwise, we see
+that a message “setup successful” will be displayed. Therefore, we proceed to analyze the pc_check_luks_password function.
+
+From the analysis of the pc_check_luks_password function, after the first comparison we conclude that the password is 8 characters long — if the provided argument
+is not 8 characters long, the function jumps directly to the end of execution and returns 0 (false).
+At the end, the function hash_password is called, which hashes the password entered into the computer terminal.
+Next, in the pc_check_luks_password function, the expected hash value returned by the hash_password function
+is loaded into the rcx register and compared with the one returned by hash_password for the entered password. If the hashes match, the ZF flag is set,
+then the instruction ‘setz al’ sets the value of al to 1 (true), and this result is returned — we get a message that the password entered into the computer is correct.
+We know that the target hash value we want to achieve is 3E4C3F5BDF80E7D3.
+
+Operation of the hashing function hash_password:
+At the beginning, it loads into register r10 the memory address that will later be used to extract consecutive letters of the password entered
+into the computer terminal and to extract consecutive elements of the array (stored somewhere in memory), which is used to hash the given password.
+Then it uses a hashing algorithm described in the pseudocode below:
+
+def hash_password():
+    
+    # Save rax as variable result
+    result = 0
+    for i in range(8):
+        rdx = input[i]      # Saving one byte (one character) of input
+        rcx[-2:] = result[-2:]
+        rdx = rdx ^ rcx     # In rdx and rcx only the last two bits (possibly) nonzero, rest are 0
+        result = result >> 2
+        result = result ^ hashTable[some_const+rdx] # some_const = r10 + 9730
+
+    return result
+
+Now we want to reverse the hashing function, knowing its successive operations and its result.
+By checking the address that the hashing function refers to when fetching consecutive values from the hash table, we find out what is actually stored there.
+From the code contained there, we can extract all the values that are XORed with the result in the hashing function.
+When decoding consecutive indices of values from the hash table, we use the fact that the inverse of XOR is the XOR of the result and one of the XORed elements.
+We know what the correct result is hashed with at the very end, since we always perform a bitshift right after the hash; the first two bits are 0,
+and there is only one such hash that contains '3E' in the first two bits — analogously, we proceed to extract subsequent values from the hash table from the task.
+Knowing the hashing function, we will successively reverse its steps and decode consecutive digits of the password;
+the code decoding the password is contained in the file 'unhash.py' attached to the solution.
+The correct password, after which we get the message “setup successfully”, is: p455w04d
+
+3.
+From the analysis of the SDL_main function, which is the main function of the program for SDL, we learn that all resources are loaded there, including the initial
+version of the game map. At the beginning, consecutive bits are loaded into the eax register, and then the 'mark' function is called to set the initial game state.
+We want to replace loading the value into the address where this state is stored with the value that is in this address after the conversation and after the
+mother comes upstairs. We can extract the value from this game state address by running the game and progressing to the moment after talking with the mother
+and when she is upstairs. Now, having the game state value at that moment, we want it to be the initial value at that address when starting the game,
+when all resources are being loaded. We can edit the value at that address directly during resource loading and set it to the state after the conversation
+and after starting the computer with the mother, and then remove all other state settings and the call to the 'mark' function from this place, so that nothing breaks
+by overwriting the initial game state. In this way, when starting the game, we will begin in the place specified in the task description.
+
+4.
+After a few battles with Gary, we can notice that every time the opponent's Pokémon’s health drops to a critical level, he uses
+a healing elixir that restores its health to the maximum. After a detailed analysis of the functions in the program code, we find the function
+called 'strategy_endless_healing'. We want to change it so that Gary does not use healing elixirs — then the battle will be fair,
+since we also do not have any elixirs. When analyzing the 'strategy_endless_healing' function, we conclude that Gary will use
+healing whenever the predict function returns 0, because later we check whether the result returned by it is 0; if the result of the
+'test eax, eax' operation is 0 — that is, the value returned by the predict function is 0 — we will NOT perform the jump to the point where the opponent
+uses the healing elixir. However, in this case, there still always exists a possibility that the opponent will heal himself. We want to change the conditional jump
+to one that will always be executed, regardless of the function’s result. Additionally, in the 'predict' function, we edit the jump to the instruction
+'mov eax, [rdx]' so that this instruction is never executed, ensuring that the value returned by it will definitely not allow the opponent to heal,
+so that the battle is guaranteed to be fair. After these modifications, winning the fight with Gary becomes possible — though not always, since, as we know,
+in Pokémon battles there is always an element of randomness — thus, the fight is fair for both sides.
