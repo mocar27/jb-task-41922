@@ -21,18 +21,22 @@
 // gfx_context has size of 1072 and it makes sense, since in gfx_close there is a call to address stored in this struct
 // with the offset of 1064 (428h in gfx_close reference), this value is assigned in gfx_init_context function
 typedef struct gfx_context {
-    uint64_t name;                  // in the offset 0 (from init_context read of addresses, holds the name casted to uint64_t)
-    int32_t width;                  // in the offset 8 (from init_context read of addresses)
-    int32_t height;                 // in the offset 12 (from init_context read of addresses)
+    uint64_t name;                  // in the offset 0  (0x0) (from init_context read of addresses, holds the name casted to uint64_t)
+    int32_t width;                  // in the offset 8  (0x8) (from init_context read of addresses)
+    int32_t height;                 // in the offset 12 (0xC) (from init_context read of addresses)
 
-    int* framebuffer;               // in the offset 16 (gfx_render), potentially switch to uint8_t*
+    int* framebuffer;               // in the offset 16 (gfx_render / draw_char), potentially switch to uint8_t*
     // if we can't find any more arguments, do padding with unused bytes
-    // uint8_t padding[1048];       // 1072 - 8 - 4 - 4 - 900 - 8 = 1048 bytes of padding to fill the struct to 1072 bytes
+    // uint8_t padding[1048];       // 1072 - 8 - 4 - 4 - 900 - 4 - 4 - 8 = X bytes of padding to fill the struct to 1072 bytes
+    int something1;                 // in the offset 1048 (0x418) (from gfx_loop), value saved in cases 10 and 11 of switch (modifierFlags)
+    int something2;                 // in the offset 1052 (0x41C) (from gfx_loop), value saved in cases 5 and 6 of switch (locationInWindow)
+    int something3;                 // in the offset 1056 (0x420) (from gfx_loop), value saved in cases 5 and 6 of switch (locationInWindow)
+    int something4;                 // in the offset 1060 (0x424) (from gfx_loop), value saved in cases 1 and 2 of switch (?)
+
     uint64_t window_addr;           // in the offset 1064 (0x428) of this struct to later use in gfx_close (from gfx_close read of addresses)
 } gfx_context;
 
-// gfx_loop                     -- void, ktoremu podaje sie 1 argument (pewnie z tym calym contextem) -- potem okno zaincjalizowane w loopie rysuje animacje
-// gfx_render
+// gfx_loop
 // gfx_create_context
 
 /** 
@@ -86,7 +90,9 @@ int64_t gfx_get_window_title(void);
 void gfx_init_context(void* ctx);
 
 /**
- * 
+ * I don't think it's exactly a 'loop', but it's definitely a switch with 11 cases
+ * It modifies elements of the gfx_context only in cases 1,2,5,6,10,11 of switch,
+ * other cases, so: 3,4,7,8,9 and default, does not modify any of the values.
  */
 void gfx_loop(void* ctx);
 
