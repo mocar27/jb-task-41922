@@ -1,4 +1,4 @@
-.PHONY : all debug clean
+.PHONY : all debug linux clean
 
 all : main 
 
@@ -8,6 +8,9 @@ main: main.c
 
 debug: main.c
 	cc -o $@ $^ -Wall -Wextra -g -lrender -L. -framework Cocoa -framework AudioToolbox 
+
+linux: main.c
+	cc -o $@ $^ -lrender -L. -lX11 -lasound
 
 clean:
 	rm -f main debug
