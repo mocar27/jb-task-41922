@@ -5,6 +5,7 @@
 .vscode/
 .jb-internship-2025-material/
 main
+temp*
 
 # Prerequisites
 *.d
