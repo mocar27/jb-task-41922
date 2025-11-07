@@ -2,8 +2,22 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "render.h"
+
+void *render_thread(void *ctx) {
+    // Send render event to the window's queue,
+    // that draws the content of the framebuffer to the window.
+    gfx_render(ctx, 0);
+
+    // Give the main loop a moment to receive the information
+    gfx_sleep(5000);
+
+    // At the end send close event to close the window gracefully.
+    gfx_close(ctx);
+    return NULL;
+}
 
 int main(void) {
     // You're allowed to modify this function as much as you want.
@@ -12,6 +26,10 @@ int main(void) {
 
     // We stay careful with memory allocation, as at any time 
     // there might be an inside function failure, that we're not responsible for.
+
+    // This main implementation is my idea my how main function should look like,
+    // but as being unable to test it, as I mentioned in the README.md,
+    // it really bumms me down.
 
     // Since gfx_create_context calls memset to fill the struct with 0s
     // and later stores it's arguments in the struct, we first need to have
@@ -42,15 +60,18 @@ int main(void) {
     
     // When all the initializations of context are done, we can initialize the graphics context.
     gfx_init_context(ctx);
+    
+    pthread_t thread;
+    if (pthread_create(&thread, NULL, render_thread, ctx) != 0) {
+        perror("pthread_create failed");
+        return EXIT_FAILURE;
+    }
 
-    // add code here
-    // gfx_loop
-    // gfx_render
-    // gfx_time
-    // gfx_sleep
-    // gfx_close
+    // In librender_x86_64.so, gfx_loop runs until receiving close event (event type 0).
+    gfx_loop(ctx);
 
-    // Free allocated resources.
+    // Gracefully wait for created thread and free allocated resources.
+    pthread_join(thread, NULL);
     free(ctx->framebuffer);
     free(ctx);
     return EXIT_SUCCESS;

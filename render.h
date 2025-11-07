@@ -28,32 +28,42 @@
  * where the value is saved, that it's the address of the NSWindow, that we will operate on.
  * 1064 (furthest used offset) + 8 (size of that pointer) = 1072 bytes total size of struct.
  * 
- * - name_addr   - address to the window title string, which is at offset 0 (0x0), 
- *                 which we deduct from gfx_init_context execution and 
- *                 gfx_create_context layout of the arguments.
- * - width       - display width at offset 8 (0x8), deducted from 
- *                 gfx_init_context and gfx_create_context.
- * - height      - display height at offset 12 (0xC), deducted from 
- *                 gfx_init_context and gfx_create_context; the right order in this struct 
- *                 of width and height was deducted from CGRectMake call in gfx_init_context
- *                 and the arguments order that CGRectMake takes
- * - framebuffer - pointer to allocated buffer at offset 16 (0x10), deducted from
- *                 gfx_render and draw_char and later just confirmed by gfx_allocate_framebuffer,
- *                 that it's the pointer to framebuffer of ints (pixels, shown at the screen)
- *                 allocated for the window of size (width x height) with 4 bytes per pixel (RGBA)
- *                 (since memory allocated is width*height*4 bytes, where sizeof(int) == 4).
- * - something1  - at offset 1048 (0x418), deducted from gfx_loop function,
- * - something2  - at offset 1052 (0x41C), deducted from gfx_loop function,
- * - something3  - at offset 1056 (0x420), deducted from gfx
- * - something4  - at offset 1060 (0x424), deducted from gfx_loop function,
- * - window_addr - at offset 1064 (0x428), first deducted from gfx_close, 
- *                 where value at offset 1064 is called and taken as argument
- *                 to Objective-C method call to send a close message.
- *                 Later from gfx_init_context, I confirmed that my deduction was correct,
- *                 since we can notice a save on the address of the first argument (rdi)
- *                 to the same offset 1064 of our struct, which is the NSWindow address, 
- *                 which was created upon calling NSWidow with alloc method,
- *                 just before calling initWithContentRect:styleMask:backing:defer: method.
+ * - name_addr        - address to the window title string, which is at offset 0 (0x0), 
+ *                      which we deduct from gfx_init_context execution and 
+ *                      gfx_create_context layout of the arguments.
+ * - width            - display width at offset 8 (0x8), deducted from 
+ *                      gfx_init_context and gfx_create_context.
+ * - height           - display height at offset 12 (0xC), deducted from 
+ *                      gfx_init_context and gfx_create_context; the right order in this struct 
+ *                      of width and height was deducted from CGRectMake call in gfx_init_context
+ *                      and the arguments order that CGRectMake takes
+ * - framebuffer      - pointer to allocated buffer at offset 16 (0x10), deducted from
+ *                      gfx_render and draw_char and later just confirmed by gfx_allocate_framebuffer,
+ *                      that it's the pointer to framebuffer of ints (pixels, shown at the screen)
+ *                      allocated for the window of size (width x height) with 4 bytes per pixel (RGBA)
+ *                      (since memory allocated is width*height*4 bytes, where sizeof(int) == 4).
+ * - modifier_flags   - at offset 1048 (0x418), deducted from gfx_loop function, which saves
+ *                      modifier flags based on pressed/released keys on the keyboard 
+ *                      (logged events of type KeyDown/KeyUp).
+ * - mouse_x          - at offset 1052 (0x41C), deducted from gfx_loop function, which
+ *                      calculates the mouse position, as for x just retrieves it from 
+ *                      "locationInWindow" and saves it.
+ * - mouse_y          - at offset 1056 (0x420), deducted from gfx_loop function, which
+ *                      calculates the mouse position, same as for mouse_x, but this time
+ *                      upon retrieving info from "locationInWindow" method it saves 
+ *                      height-y, where y is the read value for this attribute. height-y coordinate.
+ * - is_left_mouse_up - at offset 1060 (0x424), deducted from gfx_loop function, which records
+ *                      whether LMB was pressed or realeased and performing bitwise operations
+ *                      on this value it eiher stores 0 is LMB was pressed (event type 1)
+ *                      or 1 if LMB was released (event type 2).
+ * - window_addr      - at offset 1064 (0x428), first deducted from gfx_close, 
+ *                      where value at offset 1064 is called and taken as argument
+ *                      to Objective-C method call to send a close message.
+ *                      Later from gfx_init_context, I confirmed that my deduction was correct,
+ *                      since we can notice a save on the address of the first argument (rdi)
+ *                      to the same offset 1064 of our struct, which is the NSWindow address, 
+ *                      which was created upon calling NSWindow with alloc method,
+ *                      just before calling initWithContentRect:styleMask:backing:defer: method.
  */
 typedef struct gfx_context {
     uint64_t name_addr;
@@ -62,10 +72,10 @@ typedef struct gfx_context {
 
     int* framebuffer;
     
-    int something1;                 // in the offset 1048 (0x418) (from gfx_loop), value saved in cases 10 and 11 of switch (modifierFlags)
-    int something2;                 // in the offset 1052 (0x41C) (from gfx_loop), value saved in cases 5 and 6 of switch (locationInWindow)
-    int something3;                 // in the offset 1056 (0x420) (from gfx_loop), value saved in cases 5 and 6 of switch (locationInWindow)
-    int something4;                 // in the offset 1060 (0x424) (from gfx_loop), value saved in cases 1 and 2 of switch (?)
+    int modifier_flags;
+    int mouse_x;
+    int mouse_y;
+    int is_left_mouse_up;
 
     uint64_t window_addr;
 } gfx_context;
@@ -121,12 +131,38 @@ const uint64_t gfx_get_window_title(void);
 void gfx_init_context(void* ctx);
 
 /**
- * I don't think it's exactly a 'loop', but it's definitely a switch with 11 cases
+ * It's an infinite loop function, that runs until receiving an event of type 0 (close event).
+ * Close event is defined in the assembly as `db aClose, 0` and upon investigating `gfx_loop`,
+ * we notice that when event type is 0 (test eax, eax; from the event queue), function finishes.
+ * (This is the conclusion upon investigating the librender_x86_64.so binary file).
  * It modifies elements of the gfx_context only in cases 1,2,5,6,10,11 of switch,
  * other cases, so: 3,4,7,8,9 and default, does not modify any of the values.
+ * At the prologue of the function it retrieves the address to the display window
+ * and fetches next event in the Cocoa FIFO event queue (Apple applications specific)
+ * for logging events as mouse clicks, key presses, etc.
+ * Then based on the retrieved event type, when there was no event, it just return 0,
+ * if there was an event, function retrieves the event's Uid and it's type
+ * then, based on event's type, it jumps to respective case in switch statement.
  * 
+ * In cases 1 and 2, it stores the information about left mouse button state,
+ * if there was a LMB click (event of type 1), it stores 0 in ctx->is_left_mouse_up,
+ * otherwise if it was LMB release (event of type 2), it stores 1 in that attribute.
  * 
- * At the end returns 0.
+ * In cases 5 and 6, it sends event to request the mouse location in window
+ * (as case 5 and 6 are related to mouse events in the window - 
+ * MouseMoved and LeftMouseDragged respectively) and stores in ctx->mouse_x 
+ * the x coordinate of the mouse in window and in ctx->mouse_y 
+ * it stores the height-y coordinate value.
+ * 
+ * In cases 10 and 11, function recognizes that there was a keyboard event
+ * (event type 10 is KeyDown and event type 11 is KeyUp) and based on the
+ * keycode of the pressed/released key, it modifies the modifier_flags attribute
+ * accordingly inside the gfx_context struct.
+ * 
+ * If there was unknown event type or one of the (RMB Up/Down; RMB Dragged; Mouse Entered/Exited), 
+ * function jumps to default case, and forward the unhandled event type for further processing.
+ * 
+ * At the end always returns 0.
  */
 int gfx_loop(void* ctx);
 

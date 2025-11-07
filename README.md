@@ -17,7 +17,6 @@ that it felt somewhat empty when I couldn't test it, because of some small bug I
 
 ### Tools used
 
-To work on this task I've used: 
 - ***IDA Free*** - to decompile binary file into ASM code to make it somewhat readable 
 and to be able to retrieve all the information that I've provided in my solution that has let me to somewhat solve this task.
 - ***https://godbolt.org*** - Compiler Explorer, that let's you to check what assembly code is generated for given C functions.
@@ -58,7 +57,14 @@ to `CGRectMake`, we can deduct which one is the 2nd attribute and which one is t
 that is filled by ints (pixels) in that function, up until reaching a certain threshold.
 Additionally we have a function `gfx_allocate_buffer`, which allocates that buffer with malloc.
 
-- `gfx_loop` arguments
+- `gfx_loop` being the main loop that operates on our created window, it reads all the events from the Cocoa
+queue and based on the event that occured, it performs related operation (switch/case with 11 cases). 
+It performs operations until receving event=0, which is recognized as event to close the window. 
+Upon receiving it, inside `gfx_close` the event is sent to the window to close gracefully. 
+`gfx_loop` operates on a few struct attributes, that we deducted from it's execution, as it marks 
+the occurances of events (LMB pressed/released, Mouse Moved, Left Mouse Dragged, Key Up/Down), 
+so we create additional attributes to log these events with offsets read from the references
+to our struct (that is the 1st and only argument to this function).
 
 - `gfx_close` made me realise and `gfx_init_context` made me confirm my theory, that at the offset 1064 
 and of the size of 8 bytes (which sums up to exactly 1072) there is the last attribute of the struct, 
@@ -81,16 +87,9 @@ important knowledge, that has helped me with somewhat solving this Jetbrains int
 I've used my combined knowledge from: 
 - ***Security of computer systems*** - when it comes to reverse-engineering and writing/understanding code based on compiler binary 
 (additional materials related to task I was working on is included in `materials/`).
-- [Operating systems] (https://github.com/mocar27/MIMUW/tree/main/IV%20semester/os) - when it comes to assembly, decompilation and all the registers/stack operations in ASM.
+- [Operating systems](https://github.com/mocar27/MIMUW/tree/main/IV%20semester/os) - when it comes to assembly, decompilation and all the registers/stack operations in ASM.
 - [Compiler constructions](https://github.com/mocar27/latte-compiler) (additionally to OS) - when it comes to 
 understanding generated code by the compiler and all the decompiled instructions.
-
-## Task
-
-- [x] **Discover the API**: Inspect the librenderer.dylib binary to identify the public functions it provides. From their names, deduce their purpose and how they work together.
-- [x] **Reconstruct the Core Data Structure**: The library's functions likely operate on a central C struct to manage the window's state. You will need to reverse-engineer the layout of this struct in your own code to interface with the library correctly.
-- [ ] **Implement main.c**: Write a C program that uses the discovered API to correctly initialize the library, run its main loop, and properly shut it down. If you succeed, an animation will appear in the window.
-- [ ] **Compile and Link**: Compile your main.c and link it against librenderer.dylib to create the final executable.
 
 ## Reference 
 
