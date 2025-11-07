@@ -21,7 +21,7 @@
 // gfx_context has size of 1072 and it makes sense, since in gfx_close there is a call to address stored in this struct
 // with the offset of 1064 (428h in gfx_close reference), this value is assigned in gfx_init_context function
 typedef struct gfx_context {
-    uint64_t name;                  // in the offset 0  (0x0) (from init_context read of addresses, holds the name casted to uint64_t)
+    uint64_t name_addr;             // in the offset 0  (0x0) (from init_context read of addresses, holds the name casted to uint64_t)
     int32_t width;                  // in the offset 8  (0x8) (from init_context read of addresses)
     int32_t height;                 // in the offset 12 (0xC) (from init_context read of addresses)
 

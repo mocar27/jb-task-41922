@@ -2,11 +2,10 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "render.h"
 
-// - identify the public functions provided by the library by inspecting the librenderer.dylib binary
-//  - from their names, deduce their purpose and how they work together.
 // - reverse-engineer the layout of the core data structure used by the library (likely a one C struct to operate on the window's state).
 
 // Write a C program that uses the discovered API to:
@@ -20,20 +19,38 @@ int main(void) {
     // And, try to avoid memory leaks :)
 
     // gfx_sleep(1000);
-    
+
+    // gfx_allocate_framebuffer
+    // gfx_create_context
+    // gfx_get_height_screen
+    // gfx_get_width_screen
+    // gfx_get_window_title
+    // gfx_init_context
+
+    // gfx_loop
+    // gfx_render
+    // gfx_time
+    // gfx_sleep
+    // gfx_close
+
+    // Allocate memory for gfx_context
+    // and create context
+
     gfx_context* ctx = malloc(sizeof(gfx_context));
-    char* title = gfx_get_window_title();
-    uint32_t width = gfx_get_width_screen();
-    uint32_t height = gfx_get_height_screen();
+    int64_t title = gfx_get_window_title();
+    int32_t width = gfx_get_width_screen();
+    int32_t height = gfx_get_height_screen();
+
+    // fprintf(stderr, "Allocated gfx_context at: %p\n", (void*)title);
 
     fprintf(stdout, "Window title: %s\n", title);
     fprintf(stdout, "Screen width: %d\n", width);
     fprintf(stdout, "Screen height: %d\n", height);
 
     gfx_create_context(ctx, width, height, title);
+    ctx->framebuffer = gfx_allocate_framebuffer(ctx);
 
-    fprintf(stdout, "Window title: %s\n", ctx->name);
-
+    fprintf(stdout, "Window title: %s\n", ctx->name_addr);
     fprintf(stdout, "Screen height: %d\n", ctx->height);
     fprintf(stdout, "Screen width: %d\n", ctx->width);
 
@@ -59,6 +76,7 @@ int main(void) {
     // fprintf(stdout, "out our: %d ms\n", my);
     fprintf(stdout, "Ready to go?\n");
 
+    free(ctx->framebuffer);
     free(ctx);
     // free(tp);
     return EXIT_SUCCESS;
