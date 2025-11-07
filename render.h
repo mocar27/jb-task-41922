@@ -7,8 +7,8 @@
 #include <stdint.h>
 
 /** 
- * Arguments to functions are passed in following order of registers
- * rdi, rsi, rdx, rcx, r8, r9
+ * Arguments to functions are passed in following order of registers:
+ * 1. rdi, 2. rsi, 3. rdx, 4. rcx, 5. r8, 6. r9
  * Result of function is stored in rax or if pointer was passed,
  * then it is saved in respective pointer from input arguments.
  * (*) 7th and next are Passed on the stack in reverse order,
@@ -19,26 +19,56 @@
  * Longs/pointers are 64 bits - rax, rbx, rcx, rdx, rsi, rdi.
  */
 
-// gfx_context has size of 1072 and it makes sense, since in gfx_close there is a call to address stored in this struct
-// with the offset of 1064 (428h in gfx_close reference), this value is assigned in gfx_init_context function
+/** 
+ * gfx_context is our core central C data structure, that manages the window's state. 
+ * All attributes has been named according to their purpose. This structure is of size 
+ * 1072, which we can deduct from the memset in the gfx_create_context function
+ * and that the furthest reference to memory in this struct is at offset 1064 (0x428),
+ * which occurs very often in the gfx functions. As we can notice in gfx_init_context,
+ * where the value is saved, that it's the address of the NSWindow, that we will operate on.
+ * 1064 (furthest used offset) + 8 (size of that pointer) = 1072 bytes total size of struct.
+ * 
+ * - name_addr   - address to the window title string, which is at offset 0 (0x0), 
+ *                 which we deduct from gfx_init_context execution and 
+ *                 gfx_create_context layout of the arguments.
+ * - width       - display width at offset 8 (0x8), deducted from 
+ *                 gfx_init_context and gfx_create_context.
+ * - height      - display height at offset 12 (0xC), deducted from 
+ *                 gfx_init_context and gfx_create_context; the right order in this struct 
+ *                 of width and height was deducted from CGRectMake call in gfx_init_context
+ *                 and the arguments order that CGRectMake takes
+ * - framebuffer - pointer to allocated buffer at offset 16 (0x10), deducted from
+ *                 gfx_render and draw_char and later just confirmed by gfx_allocate_framebuffer,
+ *                 that it's the pointer to framebuffer of ints (pixels, shown at the screen)
+ *                 allocated for the window of size (width x height) with 4 bytes per pixel (RGBA)
+ *                 (since memory allocated is width*height*4 bytes, where sizeof(int) == 4).
+ * - something1  - at offset 1048 (0x418), deducted from gfx_loop function,
+ * - something2  - at offset 1052 (0x41C), deducted from gfx_loop function,
+ * - something3  - at offset 1056 (0x420), deducted from gfx
+ * - something4  - at offset 1060 (0x424), deducted from gfx_loop function,
+ * - window_addr - at offset 1064 (0x428), first deducted from gfx_close, 
+ *                 where value at offset 1064 is called and taken as argument
+ *                 to Objective-C method call to send a close message.
+ *                 Later from gfx_init_context, I confirmed that my deduction was correct,
+ *                 since we can notice a save on the address of the first argument (rdi)
+ *                 to the same offset 1064 of our struct, which is the NSWindow address, 
+ *                 which was created upon calling NSWidow with alloc method,
+ *                 just before calling initWithContentRect:styleMask:backing:defer: method.
+ */
 typedef struct gfx_context {
-    uint64_t name_addr;             // in the offset 0  (0x0) (from init_context read of addresses, holds the name casted to uint64_t)
-    int32_t width;                  // in the offset 8  (0x8) (from init_context read of addresses)
-    int32_t height;                 // in the offset 12 (0xC) (from init_context read of addresses)
+    uint64_t name_addr;
+    int32_t width;
+    int32_t height;
 
-    int* framebuffer;               // in the offset 16 (gfx_render / draw_char), potentially switch to uint8_t*
-    // if we can't find any more arguments, do padding with unused bytes
-    // uint8_t padding[1048];       // 1072 - 8 - 4 - 4 - 900 - 4 - 4 - 8 = X bytes of padding to fill the struct to 1072 bytes
+    int* framebuffer;
+    
     int something1;                 // in the offset 1048 (0x418) (from gfx_loop), value saved in cases 10 and 11 of switch (modifierFlags)
     int something2;                 // in the offset 1052 (0x41C) (from gfx_loop), value saved in cases 5 and 6 of switch (locationInWindow)
     int something3;                 // in the offset 1056 (0x420) (from gfx_loop), value saved in cases 5 and 6 of switch (locationInWindow)
     int something4;                 // in the offset 1060 (0x424) (from gfx_loop), value saved in cases 1 and 2 of switch (?)
 
-    uint64_t window_addr;           // in the offset 1064 (0x428) of this struct to later use in gfx_close (from gfx_close read of addresses)
+    uint64_t window_addr;
 } gfx_context;
-
-// gfx_loop
-// gfx_create_context
 
 /** 
  * Since we multiply two numbers by each other and then by 4, it's likely 
@@ -65,7 +95,7 @@ void gfx_close(void* ctx);
  * (created window pop-up is addressed by pointer at offset 1064 of this struct).
  * Before calling this function, ctx has to already be allocated in memory.
  */
-void* gfx_create_context(void* ctx, int32_t width, int32_t height, uint64_t name_addr);
+void gfx_create_context(void* ctx, int32_t width, int32_t height, uint64_t name_addr);
 
 /** 
  * Functions, that all work the same way.
@@ -77,9 +107,9 @@ void* gfx_create_context(void* ctx, int32_t width, int32_t height, uint64_t name
  * we're safe to read it and return it as int64_t.
  * Later if wanted to output as string, we would read from beginning of that address.
  */
-int32_t gfx_get_height_screen(void);
-int32_t gfx_get_width_screen(void);
-int64_t gfx_get_window_title(void);
+const int32_t  gfx_get_height_screen(void);
+const int32_t  gfx_get_width_screen(void);
+const uint64_t gfx_get_window_title(void);
 
 /** 
  * High-level function, that based on input pointer to the context struct, 
@@ -94,8 +124,11 @@ void gfx_init_context(void* ctx);
  * I don't think it's exactly a 'loop', but it's definitely a switch with 11 cases
  * It modifies elements of the gfx_context only in cases 1,2,5,6,10,11 of switch,
  * other cases, so: 3,4,7,8,9 and default, does not modify any of the values.
+ * 
+ * 
+ * At the end returns 0.
  */
-void gfx_loop(void* ctx);
+int gfx_loop(void* ctx);
 
 /**
  * Function reads input arguments and based on the height of the window
