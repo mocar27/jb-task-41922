@@ -4,6 +4,7 @@
 #define RENDER_H
 
 #include <stdio.h>
+#include <stdint.h>
 
 /** 
  * Arguments to functions are passed in following order of registers
