@@ -1,4 +1,4 @@
-# jb-task-41922 solution Konrad Mocarski
+# jb-task-1654 solution Konrad Mocarski
 
 During finishing my solution and connecting all the functions to retrieve `main.c`, I've encountered a problem with testing it.
 I got the main problem with gfx_create_context, as to my understanding, it was not complicated function, yet 
